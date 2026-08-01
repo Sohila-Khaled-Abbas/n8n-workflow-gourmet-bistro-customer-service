@@ -1,0 +1,33 @@
+name: Validate n8n Workflow Schema
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate workflow.json Syntax
+        run: |
+          if [ -f workflow.json ]; then
+            python3 -c "import json; json.load(open('workflow.json'))"
+            echo "✅ workflow.json is valid JSON."
+          else
+            echo "❌ workflow.json file missing!"
+            exit 1
+          fi
+
+      - name: Check for Unencrypted Secrets
+        run: |
+          if grep -E "(sk-or-v1-[a-zA-Z0-9]{30,}|sk-proj-[a-zA-Z0-9]{30,}|AIzaSy[a-zA-Z0-9]{30,})" workflow.json; then
+            echo "❌ Hardcoded secret detected in workflow.json!"
+            exit 1
+          else
+            echo "✅ Secret scan passed. No plain-text API keys found."
+          fi
